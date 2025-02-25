@@ -11,35 +11,50 @@ import torch
 class Change_Knowledge_Variable():
     def __init__(self,input_):
         '''
-        input_type:dataframe
-        input_size:[d,k]
-             d:时间序列长度
-             k:知识变量个数
-        知识变量含义：
-            potVolt:槽电压
-            filterResist:滤波电阻
-            smoothResist:平滑电阻
-            slopeData:斜率
-            sumSlopeData:累斜
-            fluctDelta:针振
-            wavingDelta:摆动
-            settingVoltMax:设定电压最大值
-            settingVoltMin:设定电压最小值
-            anodeChangeToNow:换极距今
+        input_type : DataFrame
+        input_size : [d, k]
+             d : longueur de la série temporelle
+             k : nombre de variables de connaissance
+        Signification des variables de connaissance :
+            potVolt          : tension du creuset (pot voltage)
+            filterResist     : résistance de filtrage
+            smoothResist     : résistance de lissage
+            slopeData        : pente
+            sumSlopeData     : pente cumulée
+            fluctDelta       : vibration type "aiguille" (variation de fluctuation)
+            wavingDelta      : oscillation (ou balancement)
+            settingVoltMax   : tension réglée maximale
+            settingVoltMin   : tension réglée minimale
+            anodeChangeToNow : temps écoulé depuis le dernier changement d'anode
         '''
         self.input_=input_
         self.output_=pd.DataFrame({'feature0':0,'feature1':0},index=[0])
         
     def change_knowledge_variable(self):
-        self.output_['feature0']=np.where(self.input_['fluctDelta'].max()>15,0.8,0.2)#针振是否超过15
-        #self.output_['feature1']=np.where(self.input_['fluctDelta'].max()>15,0.1,0.8)#针振是否超过15
-        #self.output_['feature0']=self.input_['fluctDelta'].max()#针振最大值
-       # self.output_['feature3']=np.where(self.input_['wavingDelta'].max()>6,1,0)#摆动最大值
-        self.output_['feature1']=self.input_['wavingDelta'].max()#摆动最大值
-        #self.output_['feature2']=self.input_['sumSlopeData'].var()
-        self.output_['feature2']=self.input_['sumSlopeData'].var()
-        self.output_['feature3']=self.input_['slopeData'].var()
-        #self.output_['feature2']=self.input_['potVolt'].max()/self.input_['potVolt'].var()
+        # feature0 : si le maximum de "fluctDelta" dépasse 15, on renvoie 0.8, sinon 0.2
+        self.output_['feature0'] = np.where(self.input_['fluctDelta'].max() > 15, 0.8, 0.2)
+        
+        # Alternative commentée : on pourrait aussi définir feature1 selon le dépassement de 15 (0.1 vs 0.8)
+        # self.output_['feature1'] = np.where(self.input_['fluctDelta'].max() > 15, 0.1, 0.8)
+        
+        # Alternative commentée : on pourrait simplement utiliser le maximum de "fluctDelta"
+        # self.output_['feature0'] = self.input_['fluctDelta'].max()
+        
+        # Alternative commentée : on pourrait définir feature3 comme 1 si le maximum de "wavingDelta" dépasse 6, sinon 0
+        # self.output_['feature3'] = np.where(self.input_['wavingDelta'].max() > 6, 1, 0)
+        
+        # feature1 : le maximum de "wavingDelta"
+        self.output_['feature1'] = self.input_['wavingDelta'].max()
+        
+        # feature2 : la variance de "sumSlopeData" (pente cumulée)
+        self.output_['feature2'] = self.input_['sumSlopeData'].var()
+        
+        # feature3 : la variance de "slopeData" (pente)
+        self.output_['feature3'] = self.input_['slopeData'].var()
+        
+        # Alternative commentée : on pourrait définir feature2 comme le rapport du maximum de "potVolt" sur sa variance
+        # self.output_['feature2'] = self.input_['potVolt'].max() / self.input_['potVolt'].var()
         return self.output_
+
         
     

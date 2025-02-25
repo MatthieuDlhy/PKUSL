@@ -350,24 +350,44 @@ def lead_pad_shapelet(shapelet, pos):
     padded_shapelet = numpy.concatenate([pad, shapelet])
     return padded_shapelet
 
-def record_shapelet_value(ucr_dataset_name,shapelets,X_test,pos,i,j):
-    '''将shapelet的值保存到文档里面'''
-    path='shapelet_value/'+str(ucr_dataset_name)+str(X_test.shape[0])+'/'
-    if not os.path.exists(path):
-        os.mkdir(path)
-    path_shapelet_value=path='shapelet_value/'+str(ucr_dataset_name)+str(X_test.shape[0])+'/'+'shapelet'+str(j)+'/'
-    if not os.path.exists(path_shapelet_value):
-        os.mkdir(path_shapelet_value)
-    excel_shapelet=lead_pad_shapelet(shapelets[j, 0], pos)
-    if X_test.shape[1]>1:
-        excel_time_series=X_test[i,pos]
+# def record_shapelet_value(ucr_dataset_name,shapelets,X_test,pos,i,j):
+#     '''将shapelet的值保存到文档里面'''
+#     path='shapelet_value/'+str(ucr_dataset_name)+"_"+str(X_test.shape[0])+'/'
+#     if not os.path.exists(path):
+#         os.mkdir(path)
+#     path_shapelet_value=path='shapelet_value/'+str(ucr_dataset_name)+'_'+str(X_test.shape[0])+'/'+'shapelet'+str(j)+'/'
+#     if not os.path.exists(path_shapelet_value):
+#         os.mkdir(path_shapelet_value)
+#     excel_shapelet=lead_pad_shapelet(shapelets[j, 0], pos)
+#     if X_test.shape[1]>1:
+#         excel_time_series=X_test[i,pos]
+#     else:
+#         excel_time_series=X_test[i]
+#     excel_shapelet=pd.DataFrame(excel_shapelet)
+#     excel_time_series=pd.DataFrame(excel_time_series)
+#     excel_shapelet.to_excel(path_shapelet_value+'shapelet.xlsx')
+#     excel_time_series.to_excel(path_shapelet_value+'time_series.xlsx')
+#     return
+
+def record_shapelet_value(ucr_dataset_name, shapelets, X_test, pos, i, j):
+    '''Enregistre la valeur du shapelet dans un fichier Excel'''
+    path = 'shapelet_value/' + str(ucr_dataset_name) + '_' + str(X_test.shape[0]) + '/'
+    os.makedirs(path, exist_ok=True)
+    
+    path_shapelet_value = path + 'shapelet' + str(j) + '/'
+    os.makedirs(path_shapelet_value, exist_ok=True)
+    
+    excel_shapelet = lead_pad_shapelet(shapelets[j, 0], pos)
+    if X_test.shape[1] > 1:
+        excel_time_series = X_test[i, pos]
     else:
-        excel_time_series=X_test[i]
-    excel_shapelet=pd.DataFrame(excel_shapelet)
-    excel_time_series=pd.DataFrame(excel_time_series)
-    excel_shapelet.to_excel(path_shapelet_value+'shapelet.xlsx')
-    excel_time_series.to_excel(path_shapelet_value+'time_series.xlsx')
+        excel_time_series = X_test[i]
+    excel_shapelet = pd.DataFrame(excel_shapelet)
+    excel_time_series = pd.DataFrame(excel_time_series)
+    excel_shapelet.to_excel(path_shapelet_value + 'shapelet.xlsx')
+    excel_time_series.to_excel(path_shapelet_value + 'time_series.xlsx')
     return
+
 
 def plot_sub(i,j,fig,shapelets,X_test,record_data_plot,test_y,ucr_dataset_name):
     '''
@@ -466,11 +486,16 @@ def plot_shapelets(X_test, shapelets, y_test, shapelet_transform, weights, ucr_d
 #    
     caption = """Shapelets learned for the pot volt dataset plotted on top of the best matching time series."""
     pyplot.figtext(0.5, -0.02, caption, wrap=True, horizontalalignment='center', fontsize=20, family='Times New Roman')
-    path='shapelets_plots/'+str(ucr_dataset_name)+str(X_test.shape[0])+'/'
-    if not os.path.exists(path):
-        os.mkdir(path)
-    pyplot.savefig(path+'.pdf', format='pdf', facecolor=fig.get_facecolor(), bbox_inches="tight")
-    #pyplot.savefig(path+'.png', facecolor=fig.get_facecolor(), bbox_inches="tight")
+    # path='shapelets_plots/'+str(ucr_dataset_name)+str(X_test.shape[0])+'/'
+    # if not os.path.exists(path):
+    #     os.mkdir(path)
+    # pyplot.savefig(path+'.pdf', format='pdf', facecolor=fig.get_facecolor(), bbox_inches="tight")
+    # #pyplot.savefig(path+'.png', facecolor=fig.get_facecolor(), bbox_inches="tight")
+    # pyplot.show()
+    path = 'shapelets_plots/' + str(ucr_dataset_name) + str(X_test.shape[0]) + '/'
+    os.makedirs(path, exist_ok=True)  # Remplace os.mkdir par os.makedirs
+
+    pyplot.savefig(path + '.pdf', format='pdf', facecolor=fig.get_facecolor(), bbox_inches="tight")
     pyplot.show()
     #画所有shapelets映射的特征图
     #for shapelet_num in range(0,len(shapelet_transform[1])-1,2):

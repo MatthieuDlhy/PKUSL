@@ -14,10 +14,11 @@ import torch.nn.functional as F
 from torch import optim
 from sklearn import metrics
 from matplotlib import pyplot
-from cluster import LearningShapelets
+from Learning_Shapelets.src.learning_shapelets import LearningShapelets
 from get_data import get_data_ucr, get_data_ACS
 from utils import get_weights_via_kmeans, plot_shapelets
 
+pyplot.rcParams['font.family'] = 'DejaVu Sans'
 
 class Main():
     def __init__(self,
@@ -41,9 +42,13 @@ class Main():
         s_length:shapelet的长度，Lmin为shapelet长度占所有的比例
         self.lr:学习率
         '''
-        if ucr_dataset_name == 'ACS':
-            if 'knowledge' in ucr_dataset_base_folder:
-                self.x_train, self.y_train, self.x_test, self.y_test, self.knowledge = get_data_ACS(ucr_dataset_base_folder).main()
+        knowledge_bool = True
+        # print("ucr_dataset_name :", ucr_dataset_name)
+        if ucr_dataset_name == 'ACSF1':
+            print("ucr_dataset_name :", ucr_dataset_name)
+            # if 'knowledge' in ucr_dataset_base_folder:
+            if knowledge_bool:
+                self.x_train, self.y_train, self.x_test, self.y_test, self.knowledge = get_data_ACS(ucr_dataset_name, ucr_dataset_base_folder).main()
             else:
                 self.x_train, self.y_train, self.x_test, self.y_test = get_data_ACS(ucr_dataset_base_folder).main()
         else:
@@ -92,14 +97,29 @@ class Main():
         num_classes = len(set(self.y_train))
         #loss_func=nn.CrossEntropyLoss()
         #loss_func=self.CrossEntrppyLoss_with_sum
-        loss_function = self.least_square_error
+        loss_func = self.least_square_error
         dist_measure = 'euclidean'
         learning_shapelets = LearningShapelets(shapelets_size_and_len=self.shapelets_size_and_len,
-                                              train_dataset_size=self.train_dataset_size, knowledge=self.knowledge, loss_func=loss_function,
-                                              in_channels=n_channels, num_classes=num_classes, learning_rate=self.learning_rate,
-                                              learning_weight=self.learning_weight, to_cuda=False, verbose=1, dist_measure=dist_measure,
-                                              ucr_dataset_name=self.ucr_dataset_name, t1=self.t1, t2=self.t2, 
-                                              t3=self.t3, t4=self.t4, shapelet_epoch=self.shapelet_epoch, R=self.R, q=self.q, show_visualization=self.show_visualization)
+                                            #   train_dataset_size=self.train_dataset_size,
+                                            #   knowledge=self.knowledge,
+                                              loss_func=loss_func,
+                                              in_channels=n_channels,
+                                              num_classes=num_classes,
+                                            #   learning_rate=self.learning_rate,
+                                            #   learning_weight=self.learning_weight,
+                                              to_cuda=False,
+                                              verbose=1,
+                                              dist_measure=dist_measure,
+                                            #   ucr_dataset_name=self.ucr_dataset_name,
+                                            #   t1=self.t1,
+                                            #   t2=self.t2, 
+                                            #   t3=self.t3,
+                                            #   t4=self.t4,
+                                            #   shapelet_epoch=self.shapelet_epoch,
+                                            #   R=self.R,
+                                            #   q=self.q,
+                                            #   show_visualization=self.show_visualization
+                                            )
         return learning_shapelets
     
     def CrossEntrppyLoss_with_sum(self, y, y_label):
@@ -117,10 +137,35 @@ class Main():
         loss = torch.mean(loss)
         return loss
     
-    def least_square_error(self, y, y_pseudo_class):
-        loss = torch.norm(torch.sub(y, y_pseudo_class))
-        return loss.pow(2)
-    
+    # def least_square_error(self, y, y_pseudo_class):
+    #     loss = torch.norm(torch.sub(y, y_pseudo_class))
+    #     return loss.pow(2)
+
+    # def least_square_error(self, y, y_pseudo_class):
+    #     # Si y est un vecteur 1D, le convertir en one-hot
+    #     if y.dim() == 1 or y.shape[1] != y_pseudo_class.shape[1]:
+    #         y = torch.nn.functional.one_hot(y, num_classes=y_pseudo_class.shape[1]).float()
+    #     loss = torch.norm(y - y_pseudo_class)
+    #     return loss.pow(2)
+
+    def least_square_error(self, y_hat, y):
+        """
+        Calcule l'erreur quadratique moyenne entre les logits du modèle (y_hat)
+        et les labels ground truth (y) convertis en one-hot.
+        """
+        # print("y_hat : ", y_hat)
+        # print("y :", y)
+        # S'assurer que y est 1D (contenant des indices de classe)
+        if y.dim() != 1:
+            y = y.squeeze()
+        num_classes = y_hat.shape[1]
+        # Convertir y en one-hot
+        y_onehot = torch.nn.functional.one_hot(y, num_classes=num_classes).float()
+        # Calculer la MSE entre y_hat et y_onehot
+        loss = torch.mean((y_hat.float() - y_onehot) ** 2)
+        return loss
+
+
     def initialize_shapelet_aptimizer(self, learning_shapelets):
         for i, (shapelets_size, num_shapelets) in enumerate(self.shapelets_size_and_len.items()):
             weights_block = get_weights_via_kmeans(self.x_train, shapelets_size, num_shapelets)
@@ -163,12 +208,16 @@ class Main():
         
         predictions = model.predict(x)
         
+        # if len(predictions.shape) == 2:
+        #     predictions = predictions.argmax(axis = 0)
         if len(predictions.shape) == 2:
-            predictions = predictions.argmax(axis = 0)
+            predictions = predictions.argmax(axis = 1)
+
             
         RI = metrics.rand_score(y, predictions)
         NMI = self.NMI(y,predictions)
-        print('RI',RI,'NMI',NMI)
+        print('\n RI : ', RI)
+        print('\n NMI : ', NMI, '\n')
         #print('RI',RI)
         print(predictions, y,'**************')
        # print(f"Accuracy: {(predictions == Y).sum() / Y.size}")
@@ -179,10 +228,10 @@ class Main():
         learning_shapelets = self.initialize_model()
         learning_shapelets = self.initialize_shapelet_aptimizer(learning_shapelets)
         
-        start=time.clock()
+        start=time.perf_counter()
         losses = learning_shapelets.fit(self.x_train, self.y_train, epochs = self.epoch, 
                                         batch_size = 256, shuffle = False, drop_last = False)
-        end=time.clock()
+        end=time.perf_counter()
         self.record['train_time'] = end - start
         
         '''plot_loss_shapelet'''
@@ -193,28 +242,24 @@ class Main():
         pyplot.show() 
         shapelets = learning_shapelets.get_shapelets()
         shapelet_transform = learning_shapelets.transform(self.x_test)
-        weights = learning_shapelets.get_weight()
+        # weights = learning_shapelets.get_weight()
+        weights, biases = learning_shapelets.get_weights_linear_layer()
         record_data_plot = plot_shapelets(self.x_test, shapelets, self.y_test, shapelet_transform, 
                                           weights, self.ucr_dataset_name)
         
         '''testing'''
-        start = time.clock()
+        start = time.perf_counter()
         #RI,NMI=self.eval_accuracy(learning_shapelets, self.X_test, self.y_test)
         RI,NMI = self.eval_accuracy(learning_shapelets, self.x_test, self.y_test)
-        NMI = 0
-        end = time.clock()
+        # NMI = 0
+        end = time.perf_counter()
         self.record['RI'], self.record['NMI'], self.record['test_time'] = RI, NMI, end-start
         
         '''to_excel'''
-        record = pd.read_excel('record_auto.xlsx')
-        record = record.append(self.record, ignore_index = True)
-        record.to_excel('record_auto.xlsx', index = False)
+        record = pd.read_excel('data/ACSF1/record_auto.xlsx')
+        # record = record.append(self.record, ignore_index = True)
+        record = pd.concat([record, pd.DataFrame([self.record])], ignore_index=True)
+        record.to_excel('data/ACSF1/record_auto.xlsx', index = False)
         return record_data_plot
 
         
-        
-        
-    
-    
-    
-    
